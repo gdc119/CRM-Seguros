@@ -474,6 +474,45 @@
   .confirmar-carga .cifras { display: flex; gap: 24px; margin: 18px 0; }
   .confirmar-carga .cifras strong { display: block; font-size: 26px; color: var(--azul); }
 
+  /* ---------- NARANJA (carnets) / PAGINACIÓN / LINKS ---------- */
+  .chip.naranja { background: #ffedd5; color: #c2410c; }
+  .caja-resumen.naranja { border-left-color: #f97316; cursor: pointer; }
+  .caja-resumen.naranja .numero { color: #ea580c; }
+  .caja-resumen.naranja:hover { background: #fff7ed; }
+  .panel-naranja { border-top: 4px solid #f97316; }
+  .paginacion {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 16px; font-size: 13px; color: var(--gris);
+  }
+  .paginacion-botones { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .paginacion-botones .btn-secundario { padding: 6px 12px; }
+  .paginacion-botones .btn-secundario:disabled { opacity: .4; cursor: default; }
+  .pagina-actual { padding: 0 6px; font-weight: 600; color: var(--texto); }
+  .datos-rapidos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0 4px; }
+  .dato-rapido {
+    background: var(--blanco); border-radius: var(--radio); padding: 14px 16px;
+    border-left: 5px solid var(--borde); display: flex; flex-direction: column; gap: 4px;
+  }
+  .dato-rapido .etiqueta { font-size: 13px; color: var(--gris); font-weight: 500; }
+  .dato-rapido .valor { font-size: 19px; font-weight: 700; word-break: break-word; }
+  .dato-rapido .valor a { color: inherit; text-decoration: none; }
+  .dato-rapido .valor a:hover { text-decoration: underline; }
+  .dato-rapido.siniestro { border-left-color: #dc2626; } .dato-rapido.siniestro .valor { color: #b91c1c; }
+  .dato-rapido.grua { border-left-color: #f59e0b; } .dato-rapido.grua .valor { color: #b45309; }
+  .dato-rapido.web { border-left-color: var(--azul-claro); }
+  .dato-rapido .sin-dato { color: #94a3b8; font-size: 14px; font-weight: 400; }
+  .fila-dato-rapido { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .btn-web {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--azul); color: #fff !important;
+    padding: 9px 14px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none !important;
+  }
+  .btn-web:hover { background: var(--azul-claro); }
+  .link-web { color: var(--azul-claro); font-weight: 500; }
+  .item-menu .editar-link {
+    margin-left: auto; font-size: 13px; opacity: .6; padding: 2px 6px; border-radius: 6px;
+  }
+  .item-menu .editar-link:hover { opacity: 1; background: rgba(255,255,255,.15); }
+
   /* ---------- ELIMINAR DEFINITIVO ---------- */
   .zona-peligro { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--borde); }
   .btn-borrar-definitivo {
@@ -594,6 +633,7 @@
         <button class="item-menu" data-seccion="ventas"><span class="emoji">📈</span> Ventas en curso</button>
         <button class="item-menu" data-seccion="companias"><span class="emoji">🏢</span> Compañías</button>
         <button class="item-menu oculto" id="menu-usuarios" data-seccion="usuarios"><span class="emoji">⚙️</span> Usuarios</button>
+        <button class="item-menu" id="menu-otros" data-seccion="otros" title="Abrir la página de Otros Seguros"><span class="emoji">🔗</span> Otros Seguros <span class="editar-link" data-editar-otros title="Cambiar el link" aria-label="Cambiar el link de Otros Seguros">✏️</span></button>
       </nav>
 
       <div class="menu-pie">
@@ -717,6 +757,52 @@ function textoDias(dias) {
 }
 
 const NOMBRES_PAGO = { tarjeta_credito: 'Tarjeta de crédito', cbu: 'CBU', cupon: 'Cupón' };
+const COBERTURAS = ['Responsabilidad civil', 'Terceros completo', 'Terceros completo con granizo',
+  'Terceros completo full', 'Todo riesgo con franquicia', 'Todo riesgo sin franquicia'];
+const MARCAS = ['Chevrolet', 'Citroën', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Jeep', 'Kia', 'Mercedes-Benz',
+  'Nissan', 'Peugeot', 'Renault', 'Toyota', 'Volkswagen', 'Audi', 'BMW', 'Chery', 'Suzuki', 'Yamaha',
+  'Motomel', 'Zanella', 'Gilera', 'Corven', 'Bajaj', 'Ram', 'Dodge', 'Mitsubishi', 'BYD'];
+const esRamoVehiculo = (nombre) => /auto|moto/i.test(nombre || '');
+
+// Convierte lo que se escribió en un link seguro (agrega https:// si falta)
+function urlSegura(texto) {
+  let u = String(texto || '').trim();
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u.replace(/^\/+/, '');
+  try {
+    const url = new URL(u);
+    return /^https?:$/.test(url.protocol) ? url.href : '';
+  } catch { return ''; }
+}
+const textoUrl = (u) => String(u || '').replace(/^https?:\/\//i, '').replace(/\/$/, '');
+// data-accion="link" hace que el clic abra el link sin abrir también la fila
+const linkWeb = (u, texto, clase = 'link-web') => {
+  const url = urlSegura(u);
+  return url ? `<a class="${clase}" data-accion="link" href="${escapar(url)}" target="_blank" rel="noopener noreferrer">${texto ?? escapar(textoUrl(u))}</a>` : '';
+};
+
+// Estado del carnet: 'vencido', 'mes' (vence este mes) o null
+function estadoCarnet(fechaISO) {
+  if (!fechaISO) return null;
+  const hoy = hoyISO();
+  if (fechaISO < hoy) return 'vencido';
+  if (fechaISO.slice(0, 7) === hoy.slice(0, 7)) return 'mes';
+  return null;
+}
+function chipCarnet(fechaISO, corto = false) {
+  const e = estadoCarnet(fechaISO);
+  if (e === 'mes') return `<span class="chip naranja">🪪 ${corto ? 'Carnet vence' : 'Vence este mes:'} ${formatearFecha(fechaISO).slice(0, 5)}</span>`;
+  if (e === 'vencido') return `<span class="chip rojo">🪪 Carnet vencido${corto ? '' : ' el ' + formatearFecha(fechaISO)}</span>`;
+  return '';
+}
+
+// Texto corto del bien asegurado: "AB123CD · Ford Ka SE 2019" o lo que se haya escrito
+function descripcionBien(p) {
+  const vehiculo = [p.vehiculo_marca, p.vehiculo_version, p.vehiculo_anio].filter(Boolean).join(' ');
+  const partes = [p.patente, vehiculo].filter(Boolean);
+  if (partes.length) return partes.join(' · ');
+  return p.bien_asegurado || '';
+}
 
 let perfilesLista = [];  // lista completa de usuarios
 let esAdmin = false;     // si el usuario logueado es administrador
@@ -728,6 +814,7 @@ async function cargarPerfiles() {
   // Se piden los datos más nuevos; si falta correr algún SQL, se piden menos
   let data = null;
   for (const columnas of [
+    'id, nombre, email, es_admin, visible_admin, carga_inicial_at, link_otros_seguros',
     'id, nombre, email, es_admin, visible_admin, carga_inicial_at',
     'id, nombre, email, es_admin',
     'id, nombre, email',
@@ -985,8 +1072,44 @@ function irA(seccion) {
 
 $('nav').addEventListener('click', (e) => {
   const boton = e.target.closest('.item-menu');
-  if (boton) irA(boton.dataset.seccion);
+  if (!boton) return;
+  if (boton.dataset.seccion === 'otros') {
+    abrirOtrosSeguros(!!e.target.closest('[data-editar-otros]'));
+    return;
+  }
+  irA(boton.dataset.seccion);
 });
+
+// ---------- Otros Seguros: abre el link guardado (o pide cargarlo) ----------
+function abrirOtrosSeguros(editar = false) {
+  const link = miPerfil?.link_otros_seguros;
+  if (link && urlSegura(link) && !editar) {
+    window.open(urlSegura(link), '_blank', 'noopener');
+    return;
+  }
+  if (miPerfil && !('link_otros_seguros' in miPerfil)) {
+    alert('Falta correr en Supabase el archivo "crm_vehiculos_carnet_web.sql".');
+    return;
+  }
+  abrirModal({
+    titulo: '🔗 Link de "Otros Seguros"',
+    cuerpo: `
+      <div class="aviso-info">Pegá la dirección de la página. Después, cada vez que toques <strong>"Otros Seguros"</strong> en el menú se va a abrir directamente. Para cambiarla, tocá el ✏️ al lado.</div>
+      <div class="campo"><label>Dirección web</label>
+        <input name="link" value="${escapar(link)}" placeholder="Ej: https://www.paginadeseguros.com.ar" autocomplete="off">
+      </div>`,
+    textoGuardar: link ? 'Guardar' : 'Guardar y abrir',
+    onGuardar: async (d) => {
+      const texto = (d.link || '').trim();
+      const url = urlSegura(texto);
+      if (texto && !url) return 'Esa dirección no es válida. Ejemplo: https://www.pagina.com.ar';
+      const { error } = await db.from('perfiles').update({ link_otros_seguros: url || null }).eq('id', usuarioId);
+      if (error) return errorDB(error);
+      await cargarPerfiles();
+      if (url && !link) window.open(url, '_blank', 'noopener');
+    },
+  });
+}
 
 $('boton-menu-movil').addEventListener('click', () => {
   $('menu-lateral').classList.toggle('abierto');
@@ -1110,10 +1233,19 @@ async function dibujarInicio() {
   const amarillas = data.filter((p) => p.semaforo === 'amarillo');
 
   // Siniestros abiertos (si la tabla todavía no existe, no se muestra)
-  const { count: siniestrosAbiertos, error: errorSin } = await db.from('siniestros')
-    .select('id', { count: 'exact', head: true })
-    .not('estado', 'in', '(liquidado,cerrado,rechazado)');
+  const hoyMes = new Date();
+  const [{ count: siniestrosAbiertos, error: errorSin }, rCarnets] = await Promise.all([
+    db.from('siniestros').select('id', { count: 'exact', head: true }).not('estado', 'in', '(liquidado,cerrado,rechazado)'),
+    // Carnets que vencen este mes
+    db.from('clientes').select('id, nombre_mostrar, telefono, vencimiento_carnet, usuario_id')
+      .eq('activo', true)
+      .gte('vencimiento_carnet', aISO(new Date(hoyMes.getFullYear(), hoyMes.getMonth(), 1)))
+      .lte('vencimiento_carnet', aISO(new Date(hoyMes.getFullYear(), hoyMes.getMonth() + 1, 0)))
+      .order('vencimiento_carnet'),
+  ]);
   if (seccionActual !== 'inicio') return;
+  const carnets = rCarnets.error ? null : rCarnets.data;
+  const nombreMes = hoyMes.toLocaleDateString('es-AR', { month: 'long' });
 
   const filas = data.map((p) => `
     <tr class="fila-click ${p.semaforo === 'rojo' ? 'fila-rojo' : ''}" data-accion="ver-cliente" data-id="${p.cliente_id}">
@@ -1124,7 +1256,7 @@ async function dibujarInicio() {
       <td>${escapar(p.compania)}</td>
       <td>${escapar(p.ramo)}</td>
       <td>${escapar(p.numero_poliza) || '-'}</td>
-      <td>${escapar(p.patente || p.bien_asegurado) || '-'}</td>
+      <td>${escapar(descripcionBien(p)) || '-'}</td>
       <td>${NOMBRES_PAGO[p.forma_pago] || '-'}</td>
     </tr>`).join('');
 
@@ -1150,6 +1282,11 @@ async function dibujarInicio() {
         <div class="numero">${amarillas.length}</div>
         <div class="etiqueta">🟡 Vencen en 16 a 30 días</div>
       </div>
+      ${carnets === null ? '' : `
+      <div class="caja-resumen naranja" data-accion="ver-carnets">
+        <div class="numero">${carnets.length}</div>
+        <div class="etiqueta">🪪 Carnets que vencen en ${nombreMes}</div>
+      </div>`}
       ${errorSin ? '' : `
       <div class="caja-resumen siniestro" data-accion="ir-siniestros">
         <div class="numero">${siniestrosAbiertos || 0}</div>
@@ -1169,13 +1306,27 @@ async function dibujarInicio() {
             <thead>
               <tr>
                 <th>Estado</th><th>Vencimiento</th><th>Cliente</th><th>Teléfono</th>
-                <th>Compañía</th><th>Ramo</th><th>N° póliza</th><th>Bien asegurado</th><th>Pago</th>
+                <th>Compañía</th><th>Tipo de seguro</th><th>N° póliza</th><th>Bien asegurado</th><th>Pago</th>
               </tr>
             </thead>
             <tbody>${filas}</tbody>
           </table>
         </div>`}
-    </div>`;
+    </div>
+
+    ${carnets && carnets.length ? `
+    <div class="panel panel-naranja" id="panel-carnets" style="margin-top:20px">
+      <div class="panel-titulo">🪪 Carnets de conducir que vencen en ${nombreMes}</div>
+      <div class="tabla-contenedor"><table>
+        <thead><tr><th>Vence</th><th>Cliente</th><th>Teléfono</th></tr></thead>
+        <tbody>${carnets.map((c) => `
+          <tr class="fila-click" data-accion="ver-cliente" data-id="${c.id}">
+            <td><span class="chip ${estadoCarnet(c.vencimiento_carnet) === 'vencido' ? 'rojo' : 'naranja'}">${formatearFecha(c.vencimiento_carnet)}${estadoCarnet(c.vencimiento_carnet) === 'vencido' ? ' (ya venció)' : ''}</span></td>
+            <td><strong>${escapar(c.nombre_mostrar)}</strong></td>
+            <td>${escapar(c.telefono) || '-'}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>` : ''}`;
 }
 
 // =====================================================================
@@ -1513,9 +1664,10 @@ async function dibujarCompanias() {
   const filas = companias.map((c) => `
     <tr class="fila-click" data-accion="ver-compania" data-id="${c.id}">
       <td><strong>${escapar(c.nombre)}</strong></td>
+      <td>${escapar(c.telefono_siniestros) || '-'}</td>
+      <td>${escapar(c.telefono_grua) || '-'}</td>
       <td>${escapar(c.telefono) || '-'}</td>
-      <td>${escapar(c.email) || '-'}</td>
-      <td>${escapar(c.web) || '-'}</td>
+      <td>${linkWeb(c.web, '🌐 Ir a la web ↗') || '-'}</td>
       <td>${c.activa ? '<span class="chip verde">Activa</span>' : '<span class="chip gris">Inactiva</span>'}</td>
     </tr>`).join('');
 
@@ -1531,7 +1683,7 @@ async function dibujarCompanias() {
       ${companias.length === 0
         ? vacio('🏢', 'Todavía no hay compañías cargadas.<br>Tocá "+ Nueva compañía" para agregar la primera.')
         : `<div class="tabla-contenedor"><table>
-            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Web</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Nombre</th><th>🚨 Denuncia siniestros</th><th>🛻 Grúa</th><th>Teléfono</th><th>Web</th><th>Estado</th></tr></thead>
             <tbody>${filas}</tbody>
           </table></div>`}
     </div>`;
@@ -1546,18 +1698,24 @@ function abrirFormCompania(c = null) {
         <input name="nombre" required maxlength="120" value="${escapar(c?.nombre)}" placeholder="Ej: Sancor Seguros">
       </div>
       <div class="fila-2">
-        <div class="campo"><label>Teléfono</label><input name="telefono" type="tel" value="${escapar(c?.telefono)}"></div>
+        <div class="campo"><label>🚨 Teléfono denuncia de siniestros</label><input name="telefono_siniestros" type="tel" value="${escapar(c?.telefono_siniestros)}" placeholder="Ej: 0800-777-1234"></div>
+        <div class="campo"><label>🛻 Teléfono de grúa / asistencia</label><input name="telefono_grua" type="tel" value="${escapar(c?.telefono_grua)}" placeholder="Ej: 0800-555-4785"></div>
+      </div>
+      <div class="fila-2">
+        <div class="campo"><label>Teléfono general</label><input name="telefono" type="tel" value="${escapar(c?.telefono)}"></div>
         <div class="campo"><label>Email</label><input name="email" type="email" value="${escapar(c?.email)}"></div>
       </div>
-      <div class="campo"><label>Página web</label><input name="web" value="${escapar(c?.web)}" placeholder="Ej: www.compania.com.ar"></div>
+      <div class="campo"><label>🌐 Web (link para productores, cotizador, etc.)</label><input name="web" value="${escapar(c?.web)}" placeholder="Ej: https://productores.compania.com.ar"></div>
       <div class="campo"><label>Notas</label><textarea name="notas" rows="2" placeholder="Ej: contacto del ejecutivo de cuentas">${escapar(c?.notas)}</textarea></div>
       <label class="check-linea"><input type="checkbox" name="activa" ${!c || c.activa ? 'checked' : ''}> Compañía activa (aparece al cargar pólizas)</label>`,
     onGuardar: async (d) => {
       const datos = {
         nombre: v(d, 'nombre'), telefono: v(d, 'telefono'), email: v(d, 'email'),
         web: v(d, 'web'), notas: v(d, 'notas'), activa: d.activa === 'on',
+        telefono_grua: v(d, 'telefono_grua'), telefono_siniestros: v(d, 'telefono_siniestros'),
       };
       if (!datos.nombre) return 'Falta el nombre de la compañía.';
+      if (datos.web && !urlSegura(datos.web)) return 'El link de la web no es válido.';
       const { error } = c
         ? await db.from('companias').update(datos).eq('id', c.id)
         : await db.from('companias').insert(datos);
@@ -1583,10 +1741,11 @@ function abrirFormCompania(c = null) {
 // =====================================================================
 //  SECCIÓN: CLIENTES (lista y buscador)
 // =====================================================================
-const busq = { texto: '', compania: '', ramo: '', cartera: 'mia' };
+const busq = { texto: '', compania: '', ramo: '', cartera: 'mia', pagina: 0 };
+const POR_PAGINA = 15;
 let temporizadorBusqueda = null;
 let numeroBusqueda = 0;
-let ultimosClientes = []; // resultado de la última búsqueda (para exportar)
+let idsBusquedaClientes = null; // filtro de la última búsqueda (para exportar)
 
 function dibujarClientes() {
   $('contenido').innerHTML = `
@@ -1601,32 +1760,33 @@ function dibujarClientes() {
         <button class="btn-principal btn-chico" data-accion="nuevo-cliente">+ Nuevo cliente</button>
       </div>
     </div>
-    <div class="aviso-info">💡 La compañía y el ramo se eligen en cada <strong>póliza</strong>: entrá al cliente y tocá <strong>"+ Nueva póliza"</strong>.</div>
+    <div class="aviso-info">💡 La compañía y el tipo de seguro se eligen en cada <strong>póliza</strong>: entrá al cliente y tocá <strong>"+ Nueva póliza"</strong>.</div>
     <div class="barra-busqueda">
       <input type="search" id="busq-texto" placeholder="🔍  Nombre, DNI/CUIT, N° de póliza o patente" value="${escapar(busq.texto)}">
       <select id="busq-compania" aria-label="Filtrar por compañía">${opciones(companias, busq.compania, 'Todas las compañías')}</select>
-      <select id="busq-ramo" aria-label="Filtrar por ramo">${opciones(ramos, busq.ramo, 'Todos los ramos')}</select>
+      <select id="busq-ramo" aria-label="Filtrar por tipo de seguro">${opciones(ramos, busq.ramo, 'Todos los tipos de seguro')}</select>
       ${selectorCartera('busq-cartera', busq.cartera)}
     </div>
     <div class="panel" id="lista-clientes"><div class="vacio">Cargando...</div></div>`;
 
+  const nuevaBusqueda = () => { busq.pagina = 0; buscarClientes(); };
   $('busq-texto').addEventListener('input', (e) => {
     busq.texto = e.target.value;
     clearTimeout(temporizadorBusqueda);
-    temporizadorBusqueda = setTimeout(buscarClientes, 300);
+    temporizadorBusqueda = setTimeout(nuevaBusqueda, 300);
   });
-  $('busq-compania').addEventListener('change', (e) => { busq.compania = e.target.value; buscarClientes(); });
-  $('busq-ramo').addEventListener('change', (e) => { busq.ramo = e.target.value; buscarClientes(); });
-  if ($('busq-cartera')) $('busq-cartera').addEventListener('change', (e) => { busq.cartera = e.target.value; buscarClientes(); });
+  $('busq-compania').addEventListener('change', (e) => { busq.compania = e.target.value; nuevaBusqueda(); });
+  $('busq-ramo').addEventListener('change', (e) => { busq.ramo = e.target.value; nuevaBusqueda(); });
+  if ($('busq-cartera')) $('busq-cartera').addEventListener('change', (e) => { busq.cartera = e.target.value; nuevaBusqueda(); });
 
   buscarClientes();
 }
 
-async function buscarClientes() {
-  const miBusqueda = ++numeroBusqueda;
+// Devuelve los ids de clientes que cumplen el buscador y los filtros (null = sin filtro)
+async function calcularIdsClientes() {
   const texto = busq.texto.replace(/[,()*%\\]/g, ' ').trim();
   const digitos = texto.replace(/\D/g, '');
-  let ids = null; // null = sin filtro
+  let ids = null;
 
   // Filtro por compañía y/o ramo: clientes que tengan alguna póliza así
   if (busq.compania || busq.ramo) {
@@ -1653,32 +1813,43 @@ async function buscarClientes() {
     resultados.forEach((r) => (r.data || []).forEach((fila) => encontrados.add(fila.id || fila.cliente_id)));
     ids = ids ? new Set([...ids].filter((id) => encontrados.has(id))) : encontrados;
   }
+  return ids;
+}
 
+function consultaClientes(ids, columnas, opcionesSelect) {
+  let q = db.from('clientes').select(columnas, opcionesSelect).eq('activo', true).order('nombre_mostrar').order('id');
+  if (ids) q = q.in('id', [...ids]);
+  return filtrarCartera(q, busq.cartera);
+}
+
+async function buscarClientes() {
+  const miBusqueda = ++numeroBusqueda;
+  const ids = await calcularIdsClientes();
   if (miBusqueda !== numeroBusqueda) return; // ya hay una búsqueda más nueva
+  idsBusquedaClientes = ids;
   const caja = $('lista-clientes');
   if (!caja) return;
 
   if (ids && ids.size === 0) {
-    ultimosClientes = [];
     caja.innerHTML = vacio('🔍', 'No se encontraron clientes con esa búsqueda.');
     return;
   }
 
-  let q = db.from('clientes')
-    .select('*, polizas(estado)')
-    .eq('activo', true)
-    .order('nombre_mostrar')
-    .limit(200);
-  if (ids) q = q.in('id', [...ids]);
-  q = filtrarCartera(q, busq.cartera);
-  const { data, error } = await q;
+  const desde = busq.pagina * POR_PAGINA;
+  const { data, error, count } = await consultaClientes(ids, '*, polizas(estado)', { count: 'exact' })
+    .range(desde, desde + POR_PAGINA - 1);
 
   if (miBusqueda !== numeroBusqueda || !$('lista-clientes')) return;
   if (error) {
     caja.innerHTML = `<div class="vacio"><div class="mensaje-error">${escapar(errorDB(error))}</div></div>`;
     return;
   }
-  ultimosClientes = data;
+  // Si la página quedó vacía (por ejemplo, después de dar de baja), volver a la anterior
+  if (data.length === 0 && busq.pagina > 0) {
+    busq.pagina = Math.max(0, Math.ceil((count || 0) / POR_PAGINA) - 1);
+    buscarClientes();
+    return;
+  }
   if (data.length === 0) {
     caja.innerHTML = ids
       ? vacio('🔍', 'No se encontraron clientes con esa búsqueda.')
@@ -1690,7 +1861,7 @@ async function buscarClientes() {
     const vigentes = (c.polizas || []).filter((p) => p.estado === 'vigente').length;
     return `
       <tr class="fila-click" data-accion="ver-cliente" data-id="${c.id}">
-        <td><strong>${escapar(c.nombre_mostrar)}</strong>${c.usuario_id !== usuarioId ? ` <span class="chip violeta">${escapar(perfiles[c.usuario_id] || '')}</span>` : ''}</td>
+        <td><strong>${escapar(c.nombre_mostrar)}</strong>${c.usuario_id !== usuarioId ? ` <span class="chip violeta">${escapar(perfiles[c.usuario_id] || '')}</span>` : ''} ${chipCarnet(c.vencimiento_carnet, true)}</td>
         <td><span class="chip ${c.tipo === 'empresa' ? 'azul' : 'gris'}">${c.tipo === 'empresa' ? 'Empresa' : 'Persona'}</span></td>
         <td>${escapar(c.dni_cuit) || '-'}</td>
         <td>${escapar(c.telefono) || '-'}</td>
@@ -1699,13 +1870,33 @@ async function buscarClientes() {
       </tr>`;
   }).join('');
 
+  const total = count || 0;
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
   caja.innerHTML = `
     <div class="tabla-contenedor"><table>
       <thead><tr><th>Nombre / Razón social</th><th>Tipo</th><th>DNI / CUIT</th><th>Teléfono</th><th>Localidad</th><th>Pólizas vigentes</th></tr></thead>
       <tbody>${filas}</tbody>
     </table></div>
-    <div class="pie-tabla">${data.length === 200 ? 'Mostrando los primeros 200. Usá el buscador para encontrar otros.' : `${data.length} cliente${data.length === 1 ? '' : 's'}`}</div>`;
+    <div class="paginacion">
+      <span>Mostrando ${desde + 1}–${desde + data.length} de ${total} cliente${total === 1 ? '' : 's'}</span>
+      ${paginas > 1 ? `
+      <div class="paginacion-botones">
+        <button class="btn-secundario" data-accion="pagina-clientes" data-pagina="0" ${busq.pagina === 0 ? 'disabled' : ''} aria-label="Primera página">«</button>
+        <button class="btn-secundario" data-accion="pagina-clientes" data-pagina="${busq.pagina - 1}" ${busq.pagina === 0 ? 'disabled' : ''}>‹ Anterior</button>
+        <span class="pagina-actual">Página ${busq.pagina + 1} de ${paginas}</span>
+        <button class="btn-secundario" data-accion="pagina-clientes" data-pagina="${busq.pagina + 1}" ${busq.pagina >= paginas - 1 ? 'disabled' : ''}>Siguiente ›</button>
+        <button class="btn-secundario" data-accion="pagina-clientes" data-pagina="${paginas - 1}" ${busq.pagina >= paginas - 1 ? 'disabled' : ''} aria-label="Última página">»</button>
+      </div>` : ''}
+    </div>`;
 }
+
+$('contenido').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-accion="pagina-clientes"]');
+  if (!b || b.disabled) return;
+  busq.pagina = Number(b.dataset.pagina);
+  buscarClientes();
+  $('lista-clientes').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
 
 // =====================================================================
 //  FORMULARIO DE CLIENTE (nuevo / editar)
@@ -1738,6 +1929,9 @@ function abrirFormCliente(c = null, pre = {}) {
             </select>
           </div>
           <div class="campo"><label>Profesión</label><input name="profesion" value="${escapar(c?.profesion)}"></div>
+        </div>
+        <div class="fila-3">
+          <div class="campo"><label>🪪 Vencimiento del carnet</label><input type="date" name="vencimiento_carnet" value="${escapar(c?.vencimiento_carnet)}"></div>
         </div>
       </div>
 
@@ -1773,6 +1967,7 @@ function abrirFormCliente(c = null, pre = {}) {
         fecha_nacimiento: esEmpresa ? null : v(d, 'fecha_nacimiento'),
         estado_civil: esEmpresa ? null : v(d, 'estado_civil'),
         profesion: esEmpresa ? null : v(d, 'profesion'),
+        vencimiento_carnet: esEmpresa ? null : v(d, 'vencimiento_carnet'),
         razon_social: esEmpresa ? v(d, 'razon_social') : null,
         dni_cuit: (d.dni_cuit || '').replace(/\D/g, '') || null, // se guarda solo con números
         telefono: v(d, 'telefono'),
@@ -1885,6 +2080,7 @@ function dibujarFicha() {
     esEmpresa ? '' : dato('Fecha de nacimiento', c.fecha_nacimiento ? `${formatearFecha(c.fecha_nacimiento)} (${calcularEdad(c.fecha_nacimiento)} años)` : ''),
     esEmpresa ? '' : dato('Estado civil', ESTADOS_CIVILES[c.estado_civil] || ''),
     esEmpresa ? '' : dato('Profesión', escapar(c.profesion)),
+    esEmpresa ? '' : dato('Vencimiento del carnet', c.vencimiento_carnet ? `${formatearFecha(c.vencimiento_carnet)} ${chipCarnet(c.vencimiento_carnet)}` : ''),
     dato('Notas', escapar(c.notas)),
   ].join('');
 
@@ -1894,7 +2090,7 @@ function dibujarFicha() {
       <td>${escapar(nombreDe(companias, p.compania_id))}</td>
       <td>${escapar(nombreDe(ramos, p.ramo_id))}</td>
       <td>${escapar(p.numero_poliza) || '-'}</td>
-      <td>${escapar(p.patente || p.bien_asegurado) || '-'}</td>
+      <td>${escapar(descripcionBien(p)) || '-'}</td>
       <td>${formatearFecha(p.fecha_vencimiento)}</td>
       <td>${NOMBRES_PAGO[p.forma_pago] || '-'}</td>
     </tr>`).join('');
@@ -1916,6 +2112,7 @@ function dibujarFicha() {
         <h1 class="titulo-seccion">${escapar(c.nombre_mostrar)}</h1>
         <span class="chip ${esEmpresa ? 'azul' : 'gris'}">${esEmpresa ? 'Empresa' : 'Persona'}</span>
         ${c.activo === false ? '<span class="chip rojo">Dado de baja</span>' : ''}
+        ${chipCarnet(c.vencimiento_carnet, true)}
         ${c.usuario_id && c.usuario_id !== usuarioId ? `<span class="chip violeta">Cartera de ${escapar(perfiles[c.usuario_id] || 'otro usuario')}</span>` : ''}
       </div>
       <div class="agenda-controles">
@@ -1948,7 +2145,7 @@ function dibujarFicha() {
           ${polizas.length === 0
             ? vacio('📄', 'Este cliente todavía no tiene pólizas cargadas.')
             : `<div class="tabla-contenedor"><table>
-                <thead><tr><th>Estado</th><th>Compañía</th><th>Ramo</th><th>N° póliza</th><th>Bien asegurado</th><th>Vencimiento</th><th>Pago</th></tr></thead>
+                <thead><tr><th>Estado</th><th>Compañía</th><th>Tipo de seguro</th><th>N° póliza</th><th>Bien asegurado</th><th>Vencimiento</th><th>Pago</th></tr></thead>
                 <tbody>${filasPolizas}</tbody>
               </table></div>`}
         </div>
@@ -2051,16 +2248,32 @@ function abrirFormPoliza(p = null, sugerido = {}) {
         <div class="campo"><label>Compañía *</label>
           <select name="compania_id" required>${opciones(companiasDisponibles, val('compania_id'), 'Elegí una compañía')}</select>
         </div>
-        <div class="campo"><label>Ramo *</label>
-          <select name="ramo_id" required>${opciones(ramosDisponibles, val('ramo_id'), 'Elegí un ramo')}</select>
+        <div class="campo"><label>Tipo de seguro *</label>
+          <select name="ramo_id" required>${opciones(ramosDisponibles, val('ramo_id'), 'Elegí el tipo de seguro')}</select>
         </div>
       </div>
       <div class="fila-2">
         <div class="campo"><label>N° de póliza</label><input name="numero_poliza" value="${escapar(val('numero_poliza'))}"></div>
-        <div class="campo"><label>Patente (autos y motos)</label><input name="patente" style="text-transform:uppercase" value="${escapar(val('patente'))}" placeholder="Ej: AB123CD"></div>
+        <div class="campo"><label>Cobertura (opcional)</label>
+          <input name="cobertura" list="lista-coberturas" value="${escapar(val('cobertura'))}" placeholder="Ej: Todo riesgo, Terceros completo">
+          <datalist id="lista-coberturas">${COBERTURAS.map((c) => `<option value="${c}"></option>`).join('')}</datalist>
+        </div>
       </div>
-      <div class="campo"><label>¿Qué se asegura?</label>
-        <input name="bien_asegurado" value="${escapar(val('bien_asegurado'))}" placeholder="Ej: Ford Ka 2019 / Casa en Av. Colón 1234 / iPhone 15">
+      <div id="bloque-vehiculo">
+        <div class="seccion-form">🚗 Vehículo</div>
+        <div class="fila-2">
+          <div class="campo"><label>Patente</label><input name="patente" style="text-transform:uppercase" value="${escapar(val('patente'))}" placeholder="Ej: AB123CD"></div>
+          <div class="campo"><label>Marca</label><input name="vehiculo_marca" list="lista-marcas" value="${escapar(val('vehiculo_marca'))}" placeholder="Ej: Ford">
+            <datalist id="lista-marcas">${MARCAS.map((m) => `<option value="${m}"></option>`).join('')}</datalist>
+          </div>
+        </div>
+        <div class="fila-2">
+          <div class="campo"><label>Modelo / versión</label><input name="vehiculo_version" value="${escapar(val('vehiculo_version'))}" placeholder="Ej: Ka SE 1.5"></div>
+          <div class="campo"><label>Año</label><input name="vehiculo_anio" type="number" min="1900" max="2100" value="${escapar(val('vehiculo_anio'))}" placeholder="Ej: 2019"></div>
+        </div>
+      </div>
+      <div class="campo"><label id="label-bien">¿Qué se asegura?</label>
+        <input name="bien_asegurado" value="${escapar(val('bien_asegurado'))}" placeholder="Ej: Casa en Av. Colón 1234 / iPhone 15">
       </div>
       <div class="fila-3">
         <div class="campo"><label>Inicio de vigencia</label><input type="date" name="fecha_inicio" value="${escapar(val('fecha_inicio') ?? (p ? '' : hoyISO()))}"></div>
@@ -2082,7 +2295,7 @@ function abrirFormPoliza(p = null, sugerido = {}) {
       ${p ? `<p class="pie-tabla" style="padding:0">Cargada el ${formatearFecha(p.fecha_alta)} · ${ORIGENES_POLIZA[p.origen] || ''}</p>` : ''}`,
 
     onGuardar: async (d) => {
-      if (!d.compania_id || !d.ramo_id) return 'Elegí la compañía y el ramo.';
+      if (!d.compania_id || !d.ramo_id) return 'Elegí la compañía y el tipo de seguro.';
       if (!d.fecha_vencimiento) return 'Falta la fecha de vencimiento.';
       const patente = v(d, 'patente');
       const datos = {
@@ -2096,8 +2309,17 @@ function abrirFormPoliza(p = null, sugerido = {}) {
         fecha_vencimiento: d.fecha_vencimiento,
         forma_pago: v(d, 'forma_pago'),
         notas: v(d, 'notas'),
+        cobertura: v(d, 'cobertura'),
+        vehiculo_marca: v(d, 'vehiculo_marca'),
+        vehiculo_version: v(d, 'vehiculo_version'),
+        vehiculo_anio: d.vehiculo_anio ? Number(d.vehiculo_anio) : null,
       };
-      if (p && p.estado !== 'baja' && d.estado) datos.estado = d.estado;
+      if (datos.vehiculo_anio && (datos.vehiculo_anio < 1900 || datos.vehiculo_anio > 2100)) return 'El año del vehículo no es válido.';
+      if (p && p.estado !== 'baja' && d.estado) {
+        datos.estado = d.estado;
+        if (d.estado === 'renovada' && p.estado !== 'renovada') datos.fecha_renovacion = hoyISO();
+        if (d.estado === 'vigente') datos.fecha_renovacion = null;
+      }
       if (!p && (renovando || d.es_renovacion === 'on')) datos.origen = 'renovacion';
       if (datos.fecha_inicio && datos.fecha_vencimiento < datos.fecha_inicio) {
         return 'El vencimiento no puede ser anterior al inicio de vigencia.';
@@ -2109,7 +2331,7 @@ function abrirFormPoliza(p = null, sugerido = {}) {
       if (error) return errorDB(error);
 
       if (renovando) {
-        await db.from('polizas').update({ estado: 'renovada' }).eq('id', sugerido.renovarDe.id);
+        await db.from('polizas').update({ estado: 'renovada', fecha_renovacion: hoyISO() }).eq('id', sugerido.renovarDe.id);
       }
       verCliente(clienteId);
     },
@@ -2121,6 +2343,19 @@ function abrirFormPoliza(p = null, sugerido = {}) {
     } : null,
     confirmarEliminar: '¿ELIMINAR esta póliza para siempre?\n\nSi el cliente la dio de baja, mejor usá "⛔ Dar de baja": así queda guardada y cuenta en las estadísticas. Eliminar es solo para errores de carga.',
   });
+
+  const form = $('form-general');
+  const selRamo = form.querySelector('[name=ramo_id]');
+  const actualizarVehiculo = () => {
+    const ramo = ramos.find((r) => String(r.id) === selRamo.value);
+    const tieneDatos = ['patente', 'vehiculo_marca', 'vehiculo_version', 'vehiculo_anio']
+      .some((n) => form.querySelector(`[name=${n}]`).value);
+    const esVehiculo = esRamoVehiculo(ramo?.nombre) || tieneDatos;
+    $('bloque-vehiculo').classList.toggle('oculto', !esVehiculo);
+    $('label-bien').textContent = esVehiculo ? 'Otros datos del bien (opcional)' : '¿Qué se asegura?';
+  };
+  selRamo.addEventListener('change', actualizarVehiculo);
+  actualizarVehiculo();
 }
 
 // ---------- Renovar, dar de baja y reactivar pólizas ----------
@@ -2137,6 +2372,7 @@ function renovarPoliza(p) {
     renovarDe: p,
     compania_id: p.compania_id, ramo_id: p.ramo_id, numero_poliza: p.numero_poliza,
     patente: p.patente, bien_asegurado: p.bien_asegurado, forma_pago: p.forma_pago,
+    cobertura: p.cobertura, vehiculo_marca: p.vehiculo_marca, vehiculo_version: p.vehiculo_version, vehiculo_anio: p.vehiculo_anio,
     fecha_inicio: inicio, fecha_vencimiento: vencimiento, notas: p.notas,
   });
 }
@@ -2305,25 +2541,78 @@ function descargarCSV(nombreArchivo, columnas, filas) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function exportarClientes() {
-  if (ultimosClientes.length === 0) { alert('No hay clientes para exportar con esta búsqueda.'); return; }
-  descargarCSV('clientes', [
-    { titulo: 'Tipo', valor: (c) => (c.tipo === 'empresa' ? 'Empresa' : 'Persona') },
-    { titulo: 'Nombre / Razón social', valor: (c) => c.nombre_mostrar },
-    { titulo: 'Nombre', valor: (c) => c.nombre },
-    { titulo: 'Apellido', valor: (c) => c.apellido },
-    { titulo: 'DNI / CUIT', valor: (c) => c.dni_cuit, texto: true },
-    { titulo: 'Teléfono', valor: (c) => c.telefono, texto: true },
-    { titulo: 'Email', valor: (c) => c.email },
-    { titulo: 'Dirección', valor: (c) => c.direccion },
-    { titulo: 'Localidad', valor: (c) => c.localidad },
-    { titulo: 'Provincia', valor: (c) => c.provincia },
-    { titulo: 'Fecha de nacimiento', valor: (c) => (c.fecha_nacimiento ? formatearFecha(c.fecha_nacimiento) : '') },
-    { titulo: 'Estado civil', valor: (c) => ESTADOS_CIVILES[c.estado_civil] || '' },
-    { titulo: 'Profesión', valor: (c) => c.profesion },
-    { titulo: 'Pólizas vigentes', valor: (c) => (c.polizas || []).filter((p) => p.estado === 'vigente').length },
-    { titulo: 'Notas', valor: (c) => c.notas },
-  ], ultimosClientes);
+// Exporta la cartera con las MISMAS columnas que usa la importación
+// (así el archivo exportado se puede volver a importar)
+const COLUMNAS_CARTERA = [
+  ['Apellido',             (c) => (c.tipo === 'empresa' ? '' : c.apellido)],
+  ['Nombre',               (c) => (c.tipo === 'empresa' ? '' : c.nombre)],
+  ['Razón social',         (c) => (c.tipo === 'empresa' ? c.razon_social : '')],
+  ['DNI/CUIT',             (c) => c.dni_cuit],
+  ['Teléfono',             (c) => c.telefono],
+  ['Email',                (c) => c.email],
+  ['Dirección',            (c) => c.direccion],
+  ['Localidad',            (c) => c.localidad],
+  ['Provincia',            (c) => c.provincia],
+  ['Fecha de nacimiento',  (c) => (c.fecha_nacimiento ? formatearFecha(c.fecha_nacimiento) : '')],
+  ['Estado civil',         (c) => ESTADOS_CIVILES[c.estado_civil] || ''],
+  ['Profesión',            (c) => c.profesion],
+  ['Vencimiento carnet',   (c) => (c.vencimiento_carnet ? formatearFecha(c.vencimiento_carnet) : '')],
+  ['Compañía',             (c, p) => (p ? companias.find((x) => x.id === p.compania_id)?.nombre : '')],
+  ['Tipo de seguro',       (c, p) => (p ? ramos.find((x) => x.id === p.ramo_id)?.nombre : '')],
+  ['Cobertura',            (c, p) => p?.cobertura],
+  ['N° póliza',            (c, p) => p?.numero_poliza],
+  ['Patente',              (c, p) => p?.patente],
+  ['Marca',                (c, p) => p?.vehiculo_marca],
+  ['Modelo / versión',     (c, p) => p?.vehiculo_version],
+  ['Año',                  (c, p) => p?.vehiculo_anio],
+  ['Bien asegurado',       (c, p) => p?.bien_asegurado],
+  ['Inicio vigencia',      (c, p) => (p?.fecha_inicio ? formatearFecha(p.fecha_inicio) : '')],
+  ['Vencimiento',          (c, p) => (p?.fecha_vencimiento ? formatearFecha(p.fecha_vencimiento) : '')],
+  ['Forma de pago',        (c, p) => (p ? NOMBRES_PAGO[p.forma_pago] || '' : '')],
+  ['Estado póliza',        (c, p) => (p ? ESTADOS_POLIZA[p.estado] : '')],
+  ['Notas',                (c) => c.notas],
+];
+
+// filas: [{ cliente, poliza }] (poliza puede ser null)
+async function descargarCartera(nombreArchivo, filas) {
+  const XLSX = await cargarXLSX();
+  const matriz = [COLUMNAS_CARTERA.map(([titulo]) => titulo)];
+  filas.forEach(({ cliente, poliza }) => {
+    matriz.push(COLUMNAS_CARTERA.map(([, valor]) => {
+      const x = valor(cliente, poliza);
+      return x === null || x === undefined ? '' : (typeof x === 'number' ? x : String(x));
+    }));
+  });
+  const hoja = XLSX.utils.aoa_to_sheet(matriz);
+  hoja['!cols'] = COLUMNAS_CARTERA.map(([t]) => ({ wch: Math.max(12, t.length + 3) }));
+  hoja['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: matriz.length - 1, c: COLUMNAS_CARTERA.length - 1 } }) };
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Cartera');
+  XLSX.writeFile(libro, `${nombreArchivo}_${hoyISO()}.xlsx`);
+}
+
+async function exportarClientes() {
+  const boton = document.querySelector('[data-accion="exportar-clientes"]');
+  const ids = idsBusquedaClientes;
+  if (ids && ids.size === 0) { alert('No hay clientes para exportar con esta búsqueda.'); return; }
+  try {
+    if (boton) { boton.disabled = true; boton.textContent = '⬇️ Preparando...'; }
+    const clientes = await traerTodos(() => consultaClientes(ids, '*, polizas(*)'));
+    if (clientes.length === 0) { alert('No hay clientes para exportar con esta búsqueda.'); return; }
+    // Una fila por póliza vigente; si no tiene, una fila solo con el cliente
+    const filas = [];
+    clientes.forEach((c) => {
+      const vigentes = (c.polizas || []).filter((p) => p.estado === 'vigente')
+        .sort((x, y) => (x.fecha_vencimiento || '').localeCompare(y.fecha_vencimiento || ''));
+      if (vigentes.length) vigentes.forEach((p) => filas.push({ cliente: c, poliza: p }));
+      else filas.push({ cliente: c, poliza: null });
+    });
+    await descargarCartera('clientes', filas);
+  } catch (e) {
+    alert('No se pudo exportar: ' + (e.code ? errorDB(e) : e.message || e));
+  } finally {
+    if (boton) { boton.disabled = false; boton.textContent = '⬇️ Exportar a Excel'; }
+  }
 }
 
 // =====================================================================
@@ -2332,7 +2621,6 @@ function exportarClientes() {
 const filtroPol = { texto: '', compania: '', ramo: '', estado: 'vigente', vence: '', cartera: 'mia' };
 let numeroBusquedaPol = 0;
 let temporizadorPol = null;
-let ultimasPolizas = [];
 
 const OPCIONES_VENCE = [
   { id: '', nombre: 'Cualquier vencimiento' },
@@ -2355,7 +2643,7 @@ function dibujarPolizas() {
     <div class="barra-busqueda">
       <input type="search" id="pol-texto" placeholder="🔍  N° de póliza, patente o nombre del cliente" value="${escapar(filtroPol.texto)}">
       <select id="pol-compania" aria-label="Compañía">${opciones(companias, filtroPol.compania, 'Todas las compañías')}</select>
-      <select id="pol-ramo" aria-label="Ramo">${opciones(ramos, filtroPol.ramo, 'Todos los ramos')}</select>
+      <select id="pol-ramo" aria-label="Tipo de seguro">${opciones(ramos, filtroPol.ramo, 'Todos los tipos de seguro')}</select>
       <select id="pol-estado" aria-label="Estado">
         <option value="" ${sel('', filtroPol.estado)}>Todos los estados</option>
         ${Object.entries(ESTADOS_POLIZA_PLURAL).map(([k, t]) => `<option value="${k}" ${sel(k, filtroPol.estado)}>${t}</option>`).join('')}
@@ -2377,21 +2665,30 @@ function dibujarPolizas() {
   buscarPolizas();
 }
 
-async function buscarPolizas() {
-  const miBusqueda = ++numeroBusquedaPol;
+// Condición de búsqueda por texto (n° de póliza, patente o nombre del cliente)
+async function condicionTextoPolizas() {
   const texto = filtroPol.texto.replace(/[,()*%\\]/g, ' ').trim();
+  if (!texto) return null;
+  let porNombre = db.from('clientes').select('id').limit(100);
+  texto.split(/\s+/).forEach((palabra) => { porNombre = porNombre.ilike('nombre_mostrar', `%${palabra}%`); });
+  const { data: clientesEncontrados } = await porNombre;
+  const condiciones = [
+    `numero_poliza.ilike.%${texto}%`,
+    `patente.ilike.%${texto.replace(/[\s-]/g, '')}%`,
+  ];
+  const ids = (clientesEncontrados || []).map((c) => c.id);
+  if (ids.length) condiciones.push(`cliente_id.in.(${ids.join(',')})`);
+  return condiciones.join(',');
+}
+
+function consultaPolizas(columnas, condicionTexto) {
   const hoy = hoyISO();
-
-  let q = db.from('polizas')
-    .select('*, clientes(nombre_mostrar, telefono, dni_cuit), companias(nombre), ramos(nombre)')
-    .order('fecha_vencimiento', { ascending: true })
-    .limit(500);
-
+  let q = db.from('polizas').select(columnas)
+    .order('fecha_vencimiento', { ascending: true }).order('id');
   if (filtroPol.compania) q = q.eq('compania_id', filtroPol.compania);
   if (filtroPol.ramo) q = q.eq('ramo_id', filtroPol.ramo);
   if (filtroPol.estado) q = q.eq('estado', filtroPol.estado);
   q = filtrarCartera(q, filtroPol.cartera);
-
   if (filtroPol.vence === 'vencidas') {
     q = q.lt('fecha_vencimiento', hoy);
   } else if (filtroPol.vence === 'mes') {
@@ -2401,20 +2698,15 @@ async function buscarPolizas() {
   } else if (filtroPol.vence) {
     q = q.gte('fecha_vencimiento', hoy).lte('fecha_vencimiento', sumarDias(hoy, Number(filtroPol.vence)));
   }
+  if (condicionTexto) q = q.or(condicionTexto);
+  return q;
+}
 
-  if (texto) {
-    // Clientes cuyo nombre coincide con todas las palabras escritas
-    let porNombre = db.from('clientes').select('id').limit(100);
-    texto.split(/\s+/).forEach((palabra) => { porNombre = porNombre.ilike('nombre_mostrar', `%${palabra}%`); });
-    const { data: clientesEncontrados } = await porNombre;
-    const condiciones = [
-      `numero_poliza.ilike.%${texto}%`,
-      `patente.ilike.%${texto.replace(/[\s-]/g, '')}%`,
-    ];
-    const ids = (clientesEncontrados || []).map((c) => c.id);
-    if (ids.length) condiciones.push(`cliente_id.in.(${ids.join(',')})`);
-    q = q.or(condiciones.join(','));
-  }
+async function buscarPolizas() {
+  const miBusqueda = ++numeroBusquedaPol;
+  const condicion = await condicionTextoPolizas();
+  if (miBusqueda !== numeroBusquedaPol) return;
+  let q = consultaPolizas('*, clientes(nombre_mostrar, telefono, dni_cuit), companias(nombre), ramos(nombre)', condicion).limit(500);
 
   const { data, error } = await q;
   if (miBusqueda !== numeroBusquedaPol) return;
@@ -2425,7 +2717,6 @@ async function buscarPolizas() {
     caja.innerHTML = `<div class="vacio"><div class="mensaje-error">${escapar(errorDB(error))}</div></div>`;
     return;
   }
-  ultimasPolizas = data;
   if (data.length === 0) {
     caja.innerHTML = vacio('📄', 'No hay pólizas que coincidan con estos filtros.');
     return;
@@ -2438,38 +2729,32 @@ async function buscarPolizas() {
       <td>${escapar(p.companias?.nombre)}</td>
       <td>${escapar(p.ramos?.nombre)}</td>
       <td>${escapar(p.numero_poliza) || '-'}</td>
-      <td>${escapar(p.patente || p.bien_asegurado) || '-'}</td>
+      <td>${escapar(descripcionBien(p)) || '-'}</td>
       <td>${formatearFecha(p.fecha_vencimiento)}</td>
       <td>${NOMBRES_PAGO[p.forma_pago] || '-'}</td>
     </tr>`).join('');
 
   caja.innerHTML = `
     <div class="tabla-contenedor"><table>
-      <thead><tr><th>Estado</th><th>Cliente</th><th>Compañía</th><th>Ramo</th><th>N° póliza</th><th>Bien asegurado</th><th>Vencimiento</th><th>Pago</th></tr></thead>
+      <thead><tr><th>Estado</th><th>Cliente</th><th>Compañía</th><th>Tipo de seguro</th><th>N° póliza</th><th>Bien asegurado</th><th>Vencimiento</th><th>Pago</th></tr></thead>
       <tbody>${filas}</tbody>
     </table></div>
     <div class="pie-tabla">${data.length === 500 ? 'Mostrando las primeras 500. Usá los filtros para achicar la lista.' : `${data.length} póliza${data.length === 1 ? '' : 's'}`}</div>`;
 }
 
-function exportarPolizas() {
-  if (ultimasPolizas.length === 0) { alert('No hay pólizas para exportar con estos filtros.'); return; }
-  const hoy = aFecha(hoyISO());
-  descargarCSV('polizas', [
-    { titulo: 'Cliente', valor: (p) => p.clientes?.nombre_mostrar },
-    { titulo: 'DNI / CUIT', valor: (p) => p.clientes?.dni_cuit, texto: true },
-    { titulo: 'Teléfono', valor: (p) => p.clientes?.telefono, texto: true },
-    { titulo: 'Compañía', valor: (p) => p.companias?.nombre },
-    { titulo: 'Ramo', valor: (p) => p.ramos?.nombre },
-    { titulo: 'N° póliza', valor: (p) => p.numero_poliza, texto: true },
-    { titulo: 'Patente', valor: (p) => p.patente },
-    { titulo: 'Bien asegurado', valor: (p) => p.bien_asegurado },
-    { titulo: 'Inicio', valor: (p) => (p.fecha_inicio ? formatearFecha(p.fecha_inicio) : '') },
-    { titulo: 'Vencimiento', valor: (p) => formatearFecha(p.fecha_vencimiento) },
-    { titulo: 'Días para vencer', valor: (p) => Math.round((aFecha(p.fecha_vencimiento) - hoy) / 86400000) },
-    { titulo: 'Forma de pago', valor: (p) => NOMBRES_PAGO[p.forma_pago] || '' },
-    { titulo: 'Estado', valor: (p) => ESTADOS_POLIZA[p.estado] },
-    { titulo: 'Notas', valor: (p) => p.notas },
-  ], ultimasPolizas);
+async function exportarPolizas() {
+  const boton = document.querySelector('[data-accion="exportar-polizas"]');
+  try {
+    if (boton) { boton.disabled = true; boton.textContent = '⬇️ Preparando...'; }
+    const condicion = await condicionTextoPolizas();
+    const polizas = await traerTodos(() => consultaPolizas('*, clientes(*)', condicion));
+    if (polizas.length === 0) { alert('No hay pólizas para exportar con estos filtros.'); return; }
+    await descargarCartera('polizas', polizas.map((p) => ({ cliente: p.clientes || {}, poliza: p })));
+  } catch (e) {
+    alert('No se pudo exportar: ' + (e.code ? errorDB(e) : e.message || e));
+  } finally {
+    if (boton) { boton.disabled = false; boton.textContent = '⬇️ Exportar a Excel'; }
+  }
 }
 
 // =====================================================================
@@ -2721,7 +3006,7 @@ async function abrirFormVenta(o = null, clienteFijo = null) {
         <input name="titulo" required maxlength="200" value="${escapar(o?.titulo)}" placeholder="Ej: Seguro auto Toyota Corolla 2022">
       </div>
       <div class="fila-2">
-        <div class="campo"><label>Ramo</label><select name="ramo_id">${opciones(ramos.filter((r) => r.activo || r.id === o?.ramo_id), o?.ramo_id, '-')}</select></div>
+        <div class="campo"><label>Tipo de seguro</label><select name="ramo_id">${opciones(ramos.filter((r) => r.activo || r.id === o?.ramo_id), o?.ramo_id, '-')}</select></div>
         <div class="campo"><label>Compañía</label><select name="compania_id">${opciones(companias.filter((c) => c.activa || c.id === o?.compania_id), o?.compania_id, 'Todavía no definida')}</select></div>
       </div>
       <div class="fila-3">
@@ -2888,11 +3173,32 @@ function dibujarFichaCompania() {
 
   const dato = (etiqueta, valorHTML) => (valorHTML ? `<dt>${etiqueta}</dt><dd>${valorHTML}</dd>` : '');
   const datosHTML = [
-    dato('Teléfono', c.telefono ? htmlTelefonos([c.telefono]) : ''),
+    dato('Teléfono general', c.telefono ? htmlTelefonos([c.telefono]) : ''),
     dato('Email', c.email ? `<a href="mailto:${escapar(c.email)}">${escapar(c.email)}</a>` : ''),
-    dato('Página web', escapar(c.web)),
     dato('Notas', escapar(c.notas)),
   ].join('');
+
+  const telRapido = (tel) => (tel ? htmlTelefonos([tel]) : '<span class="sin-dato">Sin cargar</span>');
+  const datosRapidos = `
+    <div class="datos-rapidos">
+      <div class="dato-rapido siniestro">
+        <span class="etiqueta">🚨 Denuncia de siniestros</span>
+        <span class="valor">${telRapido(c.telefono_siniestros)}</span>
+      </div>
+      <div class="dato-rapido grua">
+        <span class="etiqueta">🛻 Grúa / asistencia</span>
+        <span class="valor">${telRapido(c.telefono_grua)}</span>
+      </div>
+      <div class="dato-rapido web">
+        <div class="fila-dato-rapido">
+          <span class="etiqueta">🌐 Web</span>
+          <button class="btn-mini" data-accion="editar-web-compania" title="Editar link" aria-label="Editar link de la web">✏️</button>
+        </div>
+        ${c.web && urlSegura(c.web)
+          ? `<div>${linkWeb(c.web, '🌐 Ir a la web ↗', 'btn-web')}</div><span class="contacto-notas">${escapar(textoUrl(c.web))}</span>`
+          : '<span class="valor"><span class="sin-dato">Sin link. Tocá ✏️ para cargarlo.</span></span>'}
+      </div>
+    </div>`;
 
   const grupos = sinTabla
     ? '<div class="mensaje-error">Falta correr en Supabase el archivo de siniestros y usuarios para poder cargar contactos.</div>'
@@ -2920,6 +3226,7 @@ function dibujarFichaCompania() {
       </div>
       <button class="btn-secundario" data-accion="editar-compania" data-id="${c.id}">✏️ Editar datos</button>
     </div>
+    ${datosRapidos}
     <div class="ficha-layout">
       <div class="tarjeta">
         <div class="tarjeta-titulo">Datos generales</div>
@@ -3510,7 +3817,7 @@ function dibujarFichaSiniestro() {
 
   const poliza = s.polizas ? [
     dato('Compañía', escapar(s.companias?.nombre)),
-    dato('Ramo', escapar(ramos.find((r) => r.id === s.polizas.ramo_id)?.nombre)),
+    dato('Tipo de seguro', escapar(ramos.find((r) => r.id === s.polizas.ramo_id)?.nombre)),
     dato('N° de póliza', escapar(s.polizas.numero_poliza)),
     dato('Bien asegurado', escapar([s.polizas.patente, s.polizas.bien_asegurado].filter(Boolean).join(' · '))),
     dato('Vencimiento', `${formatearFecha(s.polizas.fecha_vencimiento)} (${ESTADOS_POLIZA[s.polizas.estado].toLowerCase()})`),
@@ -3996,45 +4303,75 @@ async function calcularEstadisticas() {
     : '';
 
   caja.innerHTML = '<div class="vacio">Calculando...</div>';
-  const q = filtrarCartera(
-    db.from('polizas').select('id, compania_id, ramo_id, estado, origen, fecha_alta, fecha_baja, motivo_baja').limit(20000),
-    est.cartera,
-  );
-  const { data, error } = await q;
-  if (!$('resultado-estadisticas')) return;
-  if (error) { caja.innerHTML = `<div class="mensaje-error">${escapar(errorDB(error))}</div>`; return; }
+  const pedido = { desde: est.desde, hasta: est.hasta, cartera: est.cartera };
+  let data;
+  try {
+    // Se traen TODAS las pólizas (Supabase las entrega de a 1000)
+    data = await traerTodos(() => filtrarCartera(
+      db.from('polizas').select('id, cliente_id, compania_id, ramo_id, estado, origen, fecha_alta, fecha_baja, fecha_renovacion, motivo_baja').order('id'),
+      pedido.cartera,
+    ));
+  } catch (error) {
+    if ($('resultado-estadisticas')) caja.innerHTML = `<div class="mensaje-error">${escapar(errorDB(error))}</div>`;
+    return;
+  }
+  // Si mientras calculaba se cambió el período, no mostrar este resultado viejo
+  if (!$('resultado-estadisticas') || pedido.desde !== est.desde || pedido.hasta !== est.hasta || pedido.cartera !== est.cartera) return;
 
   const enPeriodo = (f) => f && f >= est.desde && f <= est.hasta;
-  const vigentes = data.filter((p) => p.estado === 'vigente');
+  // Cartera al cierre del período: pólizas que ya estaban cargadas y que todavía
+  // no se habían dado de baja ni renovado en esa fecha
+  const vigenteEl = (p, fecha) => {
+    if (!p.fecha_alta || p.fecha_alta > fecha) return false;
+    if (p.estado === 'anulada') return false;
+    if (p.fecha_baja && p.fecha_baja <= fecha) return false;
+    if (p.estado === 'renovada' && (!p.fecha_renovacion || p.fecha_renovacion <= fecha)) return false;
+    return true;
+  };
+  const vigentes = data.filter((p) => vigenteEl(p, est.hasta));
+  const clientesVigentes = new Set(vigentes.map((p) => p.cliente_id)).size;
+  const cierre = formatearFecha(est.hasta);
   const altas = data.filter((p) => p.origen === 'nueva' && enPeriodo(p.fecha_alta));
   const bajas = data.filter((p) => p.estado === 'baja' && enPeriodo(p.fecha_baja));
   const neto = altas.length - bajas.length;
 
   const nombreCompania = (id) => companias.find((c) => String(c.id) === String(id))?.nombre || 'Sin compañía';
-  const nombreRamo = (id) => ramos.find((r) => String(r.id) === String(id))?.nombre || 'Sin ramo';
+  const nombreRamo = (id) => ramos.find((r) => String(r.id) === String(id))?.nombre || 'Sin tipo de seguro';
   const periodoTexto = `del ${formatearFecha(est.desde)} al ${formatearFecha(est.hasta)}`;
+
+  if (!vigentes.length && !altas.length && !bajas.length) {
+    caja.innerHTML = `
+      ${avisoSinConfirmar}
+      <div class="confirmar-carga" style="max-width:none">
+        <h2>📭 Sin datos en este período</h2>
+        <p>Entre el ${formatearFecha(est.desde)} y el ${cierre} no había pólizas cargadas en el sistema, ni altas ni bajas.</p>
+        <p class="texto-paso">Recordá que la cartera cuenta desde el día en que cada póliza se cargó en el CRM.</p>
+      </div>`;
+    return;
+  }
 
   caja.innerHTML = `
     ${avisoSinConfirmar}
     <div class="kpis">
-      <div class="kpi total"><div class="numero">${vigentes.length}</div><div class="etiqueta">📄 Pólizas vigentes (cartera total)</div></div>
+      <div class="kpi total"><div class="numero">${vigentes.length}</div><div class="etiqueta">📄 Pólizas vigentes al ${cierre}</div></div>
+      <div class="kpi total"><div class="numero">${clientesVigentes}</div><div class="etiqueta">👥 Clientes con pólizas vigentes al ${cierre}</div></div>
       <div class="kpi altas"><div class="numero">${altas.length}</div><div class="etiqueta">⬆️ Altas en el período</div></div>
       <div class="kpi bajas"><div class="numero">${bajas.length}</div><div class="etiqueta">⬇️ Bajas en el período</div></div>
       <div class="kpi neto"><div class="numero ${neto > 0 ? 'neto-positivo' : neto < 0 ? 'neto-negativo' : ''}">${neto > 0 ? '+' : ''}${neto}</div><div class="etiqueta">⚖️ Producción neta (altas − bajas)</div></div>
     </div>
     <div class="graficos">
-      ${graficoTorta('Cartera por compañía', 'Pólizas vigentes hoy', agrupar(vigentes, (p) => p.compania_id, nombreCompania))}
-      ${graficoTorta('Cartera por ramo', 'Pólizas vigentes hoy', agrupar(vigentes, (p) => p.ramo_id, nombreRamo))}
+      ${graficoTorta('Cartera por compañía', `Pólizas vigentes al ${cierre}`, agrupar(vigentes, (p) => p.compania_id, nombreCompania))}
+      ${graficoTorta('Cartera por tipo de seguro', `Pólizas vigentes al ${cierre}`, agrupar(vigentes, (p) => p.ramo_id, nombreRamo))}
       ${graficoTorta('Altas vs. bajas', periodoTexto, [
         { nombre: 'Altas', valor: altas.length, color: '#16a34a' },
         { nombre: 'Bajas', valor: bajas.length, color: '#dc2626' },
       ])}
       ${graficoTorta('Altas por compañía', periodoTexto + ' · sin contar renovaciones', agrupar(altas, (p) => p.compania_id, nombreCompania))}
-      ${graficoTorta('Altas por ramo', periodoTexto, agrupar(altas, (p) => p.ramo_id, nombreRamo))}
+      ${graficoTorta('Altas por tipo de seguro', periodoTexto, agrupar(altas, (p) => p.ramo_id, nombreRamo))}
       ${graficoTorta('Bajas por compañía', periodoTexto, agrupar(bajas, (p) => p.compania_id, nombreCompania))}
       ${graficoTorta('Bajas por motivo', periodoTexto, agrupar(bajas, (p) => (p.motivo_baja || 'Sin motivo').split(' — ')[0], (k) => k))}
     </div>
-    <p class="pie-tabla">Alta = póliza cargada en el período después de confirmar la carga inicial (las renovaciones no cuentan). Baja = póliza dada de baja con fecha dentro del período.</p>`;
+    <p class="pie-tabla">Cartera = pólizas que ya estaban cargadas en el CRM y seguían vigentes el último día del período. Alta = póliza cargada en el período después de confirmar la carga inicial (las renovaciones y las importadas no cuentan). Baja = póliza dada de baja con fecha dentro del período.</p>`;
 }
 
 // =====================================================================
@@ -4122,7 +4459,7 @@ async function cargarBajas() {
         <td>${escapar(p.companias?.nombre)}</td>
         <td>${escapar(p.ramos?.nombre)}</td>
         <td>${escapar(p.numero_poliza) || '-'}</td>
-        <td>${escapar(p.patente || p.bien_asegurado) || '-'}</td>
+        <td>${escapar(descripcionBien(p)) || '-'}</td>
         <td>${formatearFecha(p.fecha_baja)}</td>
         <td>${escapar(p.motivo_baja) || '-'}</td>
         ${botones(p.cliente_id, p.clientes?.nombre_mostrar || '', `<button class="btn-secundario" data-accion="reactivar-poliza-baja" data-id="${p.id}">↩️ Reactivar</button>`)}
@@ -4130,7 +4467,7 @@ async function cargarBajas() {
 
   const encabezado = esClientes
     ? '<th>Cliente</th><th>DNI / CUIT</th><th>Teléfono</th><th>Fecha de baja</th><th>Motivo</th><th></th>'
-    : '<th>Cliente</th><th>Compañía</th><th>Ramo</th><th>N° póliza</th><th>Bien asegurado</th><th>Fecha de baja</th><th>Motivo</th><th></th>';
+    : '<th>Cliente</th><th>Compañía</th><th>Tipo de seguro</th><th>N° póliza</th><th>Bien asegurado</th><th>Fecha de baja</th><th>Motivo</th><th></th>';
 
   caja.innerHTML = `
     <div class="tabla-contenedor"><table><thead><tr>${encabezado}</tr></thead><tbody>${filas}</tbody></table></div>
@@ -4156,7 +4493,7 @@ function exportarBajas() {
       { titulo: 'Teléfono', valor: (p) => p.clientes?.telefono, texto: true },
       { titulo: 'Email', valor: (p) => p.clientes?.email },
       { titulo: 'Compañía', valor: (p) => p.companias?.nombre },
-      { titulo: 'Ramo', valor: (p) => p.ramos?.nombre },
+      { titulo: 'Tipo de seguro', valor: (p) => p.ramos?.nombre },
       { titulo: 'N° póliza', valor: (p) => p.numero_poliza, texto: true },
       { titulo: 'Bien asegurado', valor: (p) => p.patente || p.bien_asegurado },
       { titulo: 'Fecha de baja', valor: (p) => formatearFecha(p.fecha_baja) },
@@ -4275,7 +4612,7 @@ async function hacerCopiaSeguridad() {
       const out = {};
       if ('cliente_id' in fila) out['Cliente'] = nombreCliente[fila.cliente_id] || '';
       if ('compania_id' in fila && !('nombre' in fila && 'activa' in fila)) out['Compañía (nombre)'] = nombreDe(companias, fila.compania_id);
-      if ('ramo_id' in fila) out['Ramo (nombre)'] = nombreDe(ramos, fila.ramo_id);
+      if ('ramo_id' in fila) out['Tipo de seguro (nombre)'] = nombreDe(ramos, fila.ramo_id);
       if ('para' in fila) out['Para'] = perfiles[fila.para] || '';
       if ('usuario_id' in fila) out['Cartera de'] = perfiles[fila.usuario_id] || '';
       Object.entries(fila).forEach(([k, val]) => {
@@ -4338,21 +4675,47 @@ const CAMPOS_IMP = [
     sin: ['fecha de nacimiento', 'fecha nacimiento', 'nacimiento', 'fecha nac', 'f nac', 'fec nac'] },
   { id: 'estado_civil', nombre: 'Estado civil', grupo: 'cliente', sin: ['estado civil'] },
   { id: 'profesion', nombre: 'Profesión', grupo: 'cliente', sin: ['profesion', 'ocupacion', 'actividad'] },
+  { id: 'vencimiento_carnet', nombre: 'Vencimiento del carnet', grupo: 'cliente',
+    sin: ['vencimiento carnet', 'vto carnet', 'venc carnet', 'vencimiento de carnet', 'vencimiento del carnet', 'carnet',
+      'carnet de conducir', 'licencia', 'licencia de conducir', 'vencimiento licencia', 'vto licencia', 'registro', 'vencimiento registro', 'vto registro'] },
   { id: 'notas', nombre: 'Notas', grupo: 'cliente', sin: ['notas', 'observaciones', 'obs', 'comentarios'] },
   { id: 'compania', nombre: 'Compañía', grupo: 'poliza', sin: ['compania', 'aseguradora', 'cia', 'compania de seguros'] },
-  { id: 'ramo', nombre: 'Ramo', grupo: 'poliza', sin: ['ramo', 'riesgo', 'tipo de seguro', 'seguro', 'producto'] },
+  { id: 'ramo', nombre: 'Tipo de seguro (Auto, Hogar, Bicicleta...)', grupo: 'poliza',
+    sin: ['tipo de seguro', 'tipo seguro', 'ramo', 'riesgo', 'tipo de riesgo', 'seccion', 'seguro', 'producto'] },
+  { id: 'cobertura', nombre: 'Cobertura (Todo riesgo, Terceros...)', grupo: 'poliza',
+    sin: ['cobertura', 'tipo de cobertura', 'tipo cobertura', 'plan', 'plan de cobertura'] },
   { id: 'numero_poliza', nombre: 'N° de póliza', grupo: 'poliza',
     sin: ['n poliza', 'nro poliza', 'numero de poliza', 'numero poliza', 'poliza', 'n de poliza', 'nro de poliza'] },
-  { id: 'patente', nombre: 'Patente', grupo: 'poliza', sin: ['patente', 'dominio', 'matricula'] },
-  { id: 'bien_asegurado', nombre: 'Bien asegurado', grupo: 'poliza',
-    sin: ['bien asegurado', 'vehiculo', 'marca y modelo', 'modelo', 'objeto asegurado', 'bien', 'descripcion del bien', 'unidad'] },
+  { id: 'patente', nombre: '🚗 Patente', grupo: 'poliza', sin: ['patente', 'dominio', 'matricula'] },
+  { id: 'marca', nombre: '🚗 Marca', grupo: 'poliza', sin: ['marca', 'marca vehiculo', 'marca del vehiculo'] },
+  { id: 'version', nombre: '🚗 Modelo / versión', grupo: 'poliza',
+    sin: ['modelo version', 'modelo', 'version', 'modelo y version', 'marca y modelo', 'vehiculo', 'descripcion vehiculo', 'unidad'] },
+  { id: 'anio', nombre: '🚗 Año', grupo: 'poliza', sin: ['ano', 'anio', 'ano modelo', 'modelo ano', 'ano vehiculo', 'ano de fabricacion', 'ano fabricacion'] },
+  { id: 'bien_asegurado', nombre: 'Bien asegurado (casa, bici, celular...)', grupo: 'poliza',
+    sin: ['bien asegurado', 'objeto asegurado', 'bien', 'descripcion del bien', 'detalle del bien'] },
   { id: 'fecha_inicio', nombre: 'Inicio de vigencia', grupo: 'poliza',
     sin: ['inicio vigencia', 'inicio de vigencia', 'vigencia desde', 'desde', 'fecha inicio', 'fecha de inicio', 'inicio'] },
   { id: 'fecha_vencimiento', nombre: 'Vencimiento', grupo: 'poliza',
     sin: ['vencimiento', 'vto', 'vence', 'vigencia hasta', 'hasta', 'fecha vencimiento', 'fecha de vencimiento', 'fin vigencia', 'fin de vigencia'] },
   { id: 'forma_pago', nombre: 'Forma de pago', grupo: 'poliza', sin: ['forma de pago', 'medio de pago', 'pago', 'forma pago'] },
+  { id: 'estado_poliza', nombre: 'Estado de la póliza (las dadas de baja no se importan)', grupo: 'poliza',
+    sin: ['estado poliza', 'estado de la poliza', 'estado'] },
 ];
-const CAMPOS_FECHA = ['fecha_nacimiento', 'fecha_inicio', 'fecha_vencimiento'];
+const CAMPOS_FECHA = ['fecha_nacimiento', 'fecha_inicio', 'fecha_vencimiento', 'vencimiento_carnet'];
+
+// Año del vehículo: acepta 2019, "2019", "Mod. 2019", 19 → 2019
+function parseAnio(valor) {
+  const t = String(valor ?? '').trim();
+  if (!t) return null;
+  const cuatro = t.match(/\b(19|20)\d{2}\b/);
+  if (cuatro) return Number(cuatro[0]);
+  const soloNumeros = t.replace(/\D/g, '');
+  if (soloNumeros.length === 2) {
+    const n = Number(soloNumeros);
+    return n <= (new Date().getFullYear() % 100) + 1 ? 2000 + n : 1900 + n;
+  }
+  return null;
+}
 
 const imp = { archivo: '', libro: null, hoja: '', encabezados: [], datos: [], filaEncabezado: 0, mapa: {}, analisis: null };
 
@@ -4378,6 +4741,8 @@ function parseFecha(valor) {
 }
 
 const SINONIMOS_RAMO = [
+  ['casa', 'Hogar'], ['departamento', 'Hogar'], ['bicicleta', 'Bicicletas'], ['drones', 'Drones'],
+  ['celulares', 'Celular'], ['telefono', 'Celular'], ['notebooks', 'Notebook'], ['laptop', 'Notebook'],
   ['hogar', 'Hogar'], ['combinado familiar', 'Hogar'], ['vivienda', 'Hogar'],
   ['comercio', 'Integral de comercio'], ['integral', 'Integral de comercio'],
   ['moto', 'Motos'], ['auto', 'Autos'], ['automotor', 'Autos'], ['vehiculo', 'Autos'],
@@ -4653,8 +5018,12 @@ async function analizarImportacion() {
       fecha_nacimiento: datos.tipo === 'persona' ? parseFecha(crudo('fecha_nacimiento')) : null,
       estado_civil: datos.tipo === 'persona' ? mapEstadoCivil(t('estado_civil')) : null,
       profesion: datos.tipo === 'persona' ? (t('profesion') || null) : null,
+      vencimiento_carnet: datos.tipo === 'persona' ? parseFecha(crudo('vencimiento_carnet')) : null,
       notas: t('notas') || null,
     });
+    if (tiene('vencimiento_carnet') && t('vencimiento_carnet') && datos.tipo === 'persona' && !datos.vencimiento_carnet) {
+      avisos.push(`Fila ${n}: el vencimiento del carnet "${t('vencimiento_carnet')}" no es una fecha válida, se deja vacío.`);
+    }
 
     const clave = dni ? `D:${dni}` : `N:${normalizar(nombreMostrar)}`;
     if (!clientes.has(clave)) {
@@ -4668,8 +5037,14 @@ async function analizarImportacion() {
 
     // Póliza de esta fila
     if (!hayPolizas) return;
-    const hayAlgo = ['compania', 'numero_poliza', 'fecha_vencimiento', 'patente', 'bien_asegurado', 'ramo'].some((c) => t(c));
+    const hayAlgo = ['compania', 'numero_poliza', 'fecha_vencimiento', 'patente', 'bien_asegurado', 'ramo',
+      'marca', 'version', 'anio', 'cobertura'].some((c) => t(c));
     if (!hayAlgo) return;
+    const estadoTexto = normalizar(t('estado_poliza'));
+    if (/baja|anulad|renovad|cancelad/.test(estadoTexto)) {
+      avisos.push(`Fila ${n}: la póliza figura como "${t('estado_poliza')}", no se importa (el cliente sí).`);
+      return;
+    }
     const textoCia = t('compania');
     const venc = parseFecha(crudo('fecha_vencimiento'));
     if (!textoCia) { errores.push(`Fila ${n}: la póliza no tiene compañía. Se importa solo el cliente.`); return; }
@@ -4680,11 +5055,27 @@ async function analizarImportacion() {
       if (!crearCias) { errores.push(`Fila ${n}: la compañía "${textoCia}" no está cargada. Se importa solo el cliente.`); return; }
       if (!ciasNuevas.has(normalizar(textoCia))) ciasNuevas.set(normalizar(textoCia), textoCia);
     }
+    let cobertura = t('cobertura') || null;
     let ramoId = buscarRamo(t('ramo'));
+    // Si no hay columna de tipo de seguro, la cobertura puede traerlo (ej: "Hogar")
+    if (!ramoId && !t('ramo') && cobertura) {
+      const posible = buscarRamo(cobertura);
+      if (posible) {
+        ramoId = posible;
+        if (normalizar(ramos.find((r) => r.id === posible)?.nombre) === normalizar(cobertura)) cobertura = null;
+      }
+    }
+    const hayVehiculo = ['patente', 'marca', 'version', 'anio'].some((c) => t(c));
+    if (!ramoId && hayVehiculo) {
+      const esMoto = /moto/.test(normalizar(`${t('ramo')} ${t('cobertura')} ${t('version')}`));
+      ramoId = ramos.find((r) => r.nombre === (esMoto ? 'Motos' : 'Autos'))?.id || null;
+    }
     if (!ramoId) {
-      if (t('ramo')) avisos.push(`Fila ${n}: no reconocí el ramo "${t('ramo')}", se carga como "Otros".`);
+      if (t('ramo')) avisos.push(`Fila ${n}: no reconocí el tipo de seguro "${t('ramo')}", se carga como "Otros".`);
       ramoId = ramos.find((r) => r.nombre === 'Otros')?.id || ramos[0]?.id;
     }
+    const anio = parseAnio(crudo('anio'));
+    if (t('anio') && !anio) avisos.push(`Fila ${n}: no entendí el año "${t('anio')}", se deja vacío.`);
     let inicio = parseFecha(crudo('fecha_inicio'));
     if (inicio && inicio > venc) {
       avisos.push(`Fila ${n}: el inicio de vigencia es posterior al vencimiento, se deja vacío.`);
@@ -4698,6 +5089,10 @@ async function analizarImportacion() {
       numero_poliza: t('numero_poliza') || null,
       patente,
       bien_asegurado: t('bien_asegurado') || null,
+      vehiculo_marca: t('marca') || null,
+      vehiculo_version: t('version') || null,
+      vehiculo_anio: anio,
+      cobertura,
       fecha_inicio: inicio,
       fecha_vencimiento: venc,
       forma_pago: mapPago(t('forma_pago')),
@@ -4728,7 +5123,7 @@ async function analizarImportacion() {
       <td>${escapar(c.datos.dni_cuit) || '-'}</td>
       <td>${escapar(c.datos.telefono) || '-'}</td>
       <td>${escapar(c.datos.localidad) || '-'}</td>
-      <td>${c.polizas.map((p) => escapar(`${p.textoCia} · vence ${formatearFecha(p.fecha_vencimiento)}`)).join('<br>') || '-'}</td>
+      <td>${c.polizas.map((p) => escapar([p.textoCia, descripcionBien(p), p.cobertura, `vence ${formatearFecha(p.fecha_vencimiento)}`].filter(Boolean).join(' · '))).join('<br>') || '-'}</td>
       <td>${existentes.has(c.clave) ? '<span class="chip gris">Ya estaba</span>' : '<span class="chip verde">Nuevo</span>'}</td>
     </tr>`).join('');
 
@@ -4839,6 +5234,10 @@ async function confirmarImportacion() {
           numero_poliza: p.numero_poliza,
           patente: p.patente,
           bien_asegurado: p.bien_asegurado,
+          vehiculo_marca: p.vehiculo_marca,
+          vehiculo_version: p.vehiculo_version,
+          vehiculo_anio: p.vehiculo_anio,
+          cobertura: p.cobertura,
           fecha_inicio: p.fecha_inicio,
           fecha_vencimiento: p.fecha_vencimiento,
           forma_pago: p.forma_pago,
@@ -4858,6 +5257,9 @@ async function confirmarImportacion() {
       if (error) {
         if (error.code === '23514' && /origen/.test(error.message || '')) {
           throw new Error('Falta correr en Supabase el archivo "crm_importacion.sql".');
+        }
+        if (/vehiculo_|cobertura|vencimiento_carnet/.test(error.message || '')) {
+          throw new Error('Falta correr en Supabase el archivo "crm_vehiculos_carnet_web.sql".');
         }
         throw error;
       }
@@ -4888,16 +5290,24 @@ async function confirmarImportacion() {
 async function descargarPlantilla() {
   try {
     const XLSX = await cargarXLSX();
-    const encabezados = ['Apellido', 'Nombre', 'Razón social', 'DNI/CUIT', 'Teléfono', 'Email', 'Dirección', 'Localidad',
-      'Provincia', 'Fecha de nacimiento', 'Compañía', 'Ramo', 'N° póliza', 'Patente', 'Bien asegurado',
-      'Inicio vigencia', 'Vencimiento', 'Forma de pago', 'Notas'];
+    const encabezados = COLUMNAS_CARTERA.map(([titulo]) => titulo);
+    const ejemplo = (datos) => encabezados.map((h) => datos[h] ?? '');
+    const juan = {
+      'Apellido': 'Pérez', 'Nombre': 'Juan', 'DNI/CUIT': '20123456789', 'Teléfono': '351 555-1234', 'Email': 'juan@mail.com',
+      'Dirección': 'Av. Colón 1234', 'Localidad': 'Córdoba', 'Provincia': 'Córdoba', 'Fecha de nacimiento': '15/03/1985',
+      'Vencimiento carnet': '20/11/2027',
+    };
     const ejemplos = [
-      ['Pérez', 'Juan', '', '20123456789', '351 555-1234', 'juan@mail.com', 'Av. Colón 1234', 'Córdoba', 'Córdoba', '15/03/1985',
-        'Sancor', 'Autos', '123456', 'AB123CD', 'Ford Ka 2019', '01/11/2026', '01/11/2027', 'Tarjeta de crédito', ''],
-      ['Pérez', 'Juan', '', '20123456789', '351 555-1234', 'juan@mail.com', 'Av. Colón 1234', 'Córdoba', 'Córdoba', '15/03/1985',
-        'Federación Patronal', 'Hogar', '987654', '', 'Casa Av. Colón 1234', '15/01/2026', '15/01/2027', 'CBU', 'Mismo cliente, segunda póliza'],
-      ['', '', 'Panadería El Sol SRL', '30712345678', '351 444-5678', 'elsol@mail.com', 'San Martín 50', 'Villa Carlos Paz', 'Córdoba', '',
-        'Sancor', 'Integral de comercio', '555111', '', 'Local comercial', '01/06/2026', '01/06/2027', 'Cupón', ''],
+      ejemplo({ ...juan, 'Compañía': 'Sancor', 'Tipo de seguro': 'Autos', 'Cobertura': 'Todo riesgo con franquicia', 'N° póliza': '123456',
+        'Patente': 'AB123CD', 'Marca': 'Ford', 'Modelo / versión': 'Ka SE 1.5', 'Año': 2019,
+        'Inicio vigencia': '01/11/2026', 'Vencimiento': '01/11/2027', 'Forma de pago': 'Tarjeta de crédito', 'Estado póliza': 'Vigente' }),
+      ejemplo({ ...juan, 'Compañía': 'Federación Patronal', 'Tipo de seguro': 'Hogar', 'Cobertura': 'Combinado familiar', 'N° póliza': '987654',
+        'Bien asegurado': 'Casa Av. Colón 1234', 'Inicio vigencia': '15/01/2026', 'Vencimiento': '15/01/2027', 'Forma de pago': 'CBU',
+        'Estado póliza': 'Vigente', 'Notas': 'Mismo cliente, segunda póliza' }),
+      ejemplo({ 'Razón social': 'Panadería El Sol SRL', 'DNI/CUIT': '30712345678', 'Teléfono': '351 444-5678', 'Email': 'elsol@mail.com',
+        'Dirección': 'San Martín 50', 'Localidad': 'Villa Carlos Paz', 'Provincia': 'Córdoba', 'Compañía': 'Sancor',
+        'Tipo de seguro': 'Integral de comercio', 'N° póliza': '555111', 'Bien asegurado': 'Local comercial',
+        'Inicio vigencia': '01/06/2026', 'Vencimiento': '01/06/2027', 'Forma de pago': 'Cupón', 'Estado póliza': 'Vigente' }),
     ];
     const hoja = XLSX.utils.aoa_to_sheet([encabezados, ...ejemplos]);
     hoja['!cols'] = encabezados.map((h) => ({ wch: Math.max(14, h.length + 4) }));
@@ -4909,7 +5319,11 @@ async function descargarPlantilla() {
       ['• Personas: completá Apellido y Nombre. Empresas: completá Razón social.'],
       ['• Las fechas van como día/mes/año (ej: 15/03/2026).'],
       ['• Compañía y Vencimiento son obligatorios solo si cargás póliza.'],
-      ['• Ramo: Autos, Motos, Hogar, Integral de comercio, Vida, Accidentes personales, ART, Caución, Bicicletas, Notebook, Celular, Consorcio, Drones u Otros.'],
+      ['• Autos y motos: completá Patente, Marca, Modelo / versión y Año. Cobertura (opcional): Responsabilidad civil, Terceros completo, Todo riesgo, etc.'],
+      ['• Vencimiento carnet: fecha de vencimiento del carnet de conducir del cliente (día/mes/año).'],
+      ['• Estado póliza: las que digan "Dada de baja", "Renovada" o "Anulada" no se importan (el cliente sí).'],
+      ['• Este es el mismo formato que usa "Exportar a Excel": un archivo exportado se puede volver a importar.'],
+      ['• Tipo de seguro: Autos, Motos, Hogar, Integral de comercio, Vida, Accidentes personales, ART, Caución, Bicicletas, Notebook, Celular, Consorcio, Drones u Otros.'],
       ['• Forma de pago: Tarjeta de crédito, CBU o Cupón.'],
       ['• Las columnas que no tengas, dejalas vacías o borralas. También podés usar tu propio Excel: el CRM te deja elegir qué columna es cada dato.'],
     ]);
@@ -5004,6 +5418,37 @@ $('contenido').addEventListener('click', (e) => {
   if (!el) return;
   e.stopPropagation();
   eliminarClienteDefinitivo(el.dataset.id);
+});
+
+// ---------- Web de compañías y carnets ----------
+$('contenido').addEventListener('click', (e) => {
+  const el = e.target.closest('[data-accion]');
+  if (!el) return;
+  switch (el.dataset.accion) {
+    case 'editar-web-compania': {
+      const c = fichaCompania.compania;
+      abrirModal({
+        titulo: `🌐 Web de ${c.nombre}`,
+        cuerpo: `
+          <div class="campo"><label>Dirección web</label>
+            <input name="web" value="${escapar(c.web)}" placeholder="Ej: https://productores.compania.com.ar" autocomplete="off">
+          </div>
+          <p class="texto-paso">Dejalo vacío para borrar el link.</p>`,
+        onGuardar: async (d) => {
+          const texto = (d.web || '').trim();
+          if (texto && !urlSegura(texto)) return 'Esa dirección no es válida. Ejemplo: https://www.compania.com.ar';
+          const { error } = await db.from('companias').update({ web: texto ? urlSegura(texto) : null }).eq('id', c.id);
+          if (error) return errorDB(error);
+          await cargarCatalogos();
+          verCompania(c.id);
+        },
+      });
+      break;
+    }
+    case 'ver-carnets':
+      if ($('panel-carnets')) $('panel-carnets').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      break;
+  }
 });
 </script>
 </body>
